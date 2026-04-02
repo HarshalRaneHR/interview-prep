@@ -40,18 +40,31 @@ const useStore = create(
     }),
     {
       name: 'interview-prep-storage',
-      // Sets don't serialize well, convert to/from arrays
-      serialize: (state) => {
-        const s = { ...state.state }
-        s.completedQuestions = [...s.completedQuestions]
-        s.bookmarks = [...s.bookmarks]
-        return JSON.stringify({ ...state, state: s })
-      },
-      deserialize: (str) => {
-        const parsed = JSON.parse(str)
-        parsed.state.completedQuestions = new Set(parsed.state.completedQuestions)
-        parsed.state.bookmarks = new Set(parsed.state.bookmarks)
-        return parsed
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name)
+          if (!str) return null
+          try {
+            const parsed = JSON.parse(str)
+            if (parsed.state) {
+              parsed.state.completedQuestions = new Set(parsed.state.completedQuestions || [])
+              parsed.state.bookmarks = new Set(parsed.state.bookmarks || [])
+            }
+            return parsed
+          } catch {
+            return null
+          }
+        },
+        setItem: (name, value) => {
+          const s = { ...value }
+          if (s.state) {
+            s.state = { ...s.state }
+            s.state.completedQuestions = [...(s.state.completedQuestions || [])]
+            s.state.bookmarks = [...(s.state.bookmarks || [])]
+          }
+          localStorage.setItem(name, JSON.stringify(s))
+        },
+        removeItem: (name) => localStorage.removeItem(name),
       },
     }
   )
